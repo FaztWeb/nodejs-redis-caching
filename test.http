@@ -1,0 +1,5 @@
+
+GET http://localhost:3000/jokes
+
+###
+GET http://localhost:3000/character/1
