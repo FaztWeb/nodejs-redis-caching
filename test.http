@@ -1,5 +1,6 @@
 
-GET http://localhost:3000/jokes
+### Get all chracters
+GET http://localhost:3000/character
 
 ###
 GET http://localhost:3000/character/1
