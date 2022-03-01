@@ -1,20 +1,15 @@
 const express = require("express");
 const axios = require("axios");
-const redis = require("redis");
+const { createClient } = require("redis");
 const responseTime = require("response-time");
-const { promisify } = require("util");
 
 const app = express();
 
 // Connecting to redis
-const client = redis.createClient({
+const client = createClient({
   host: "127.0.0.1",
   port: 6379,
 });
-
-// Promisifying Get and set methods
-const GET_ASYNC = promisify(client.get).bind(client);
-const SET_ASYNC = promisify(client.set).bind(client);
 
 app.use(responseTime());
 
@@ -22,7 +17,7 @@ app.use(responseTime());
 app.get("/character", async (req, res, next) => {
   try {
     // Search Data in Redis
-    const reply = await GET_ASYNC("character");
+    const reply = await client.get("character");
 
     // if exists returns from redis and finish with response
     if (reply) return res.send(JSON.parse(reply));
@@ -33,12 +28,14 @@ app.get("/character", async (req, res, next) => {
     );
 
     // Saving the results in Redis. The "EX" and 10, sets an expiration of 10 Seconds
-    const saveResult = await SET_ASYNC(
+    const saveResult = await client.set(
       "character",
       JSON.stringify(response.data),
-      "EX",
-      10
+      {
+        EX: 10,
+      }
     );
+    console.log(saveResult)
 
     // resond to client
     res.send(response.data);
@@ -50,7 +47,7 @@ app.get("/character", async (req, res, next) => {
 // Get a single character
 app.get("/character/:id", async (req, res, next) => {
   try {
-    const reply = await GET_ASYNC(req.params.id);
+    const reply = await client.get(req.params.id);
 
     if (reply) {
       console.log("using cached data");
@@ -60,11 +57,12 @@ app.get("/character/:id", async (req, res, next) => {
     const response = await axios.get(
       "https://rickandmortyapi.com/api/character/" + req.params.id
     );
-    const saveResult = await SET_ASYNC(
+    const saveResult = await client.set(
       req.params.id,
       JSON.stringify(response.data),
-      "EX",
-      15
+      {
+        EX: 15,
+      }
     );
 
     console.log("saved data:", saveResult);
@@ -76,5 +74,10 @@ app.get("/character/:id", async (req, res, next) => {
   }
 });
 
-app.listen(3000);
-console.log("server listen on port 3000");
+async function main() {
+  await client.connect();
+  app.listen(3000);
+  console.log("server listen on port 3000");
+}
+
+main();
