@@ -2,5 +2,5 @@
 ### Get all chracters
 GET http://localhost:3000/character
 
-###
+### Get character by id     
 GET http://localhost:3000/character/1
